@@ -1,0 +1,6 @@
+.vscode
+*.o
+*~
+lxc-awa-agent
+lxc-server-defs
+run-clientd.sh
