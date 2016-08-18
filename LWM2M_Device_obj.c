@@ -72,12 +72,12 @@ static void DefineDeviceObject(AwaClientSession * session)
     AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition,  3, "FirmwareVersion",  MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  4, "Reboot",    MandatoryEnum_Mandatory, AwaResourceOperations_Execute);
     AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  5, "FactoryReset",   MandatoryEnum_Optional, AwaResourceOperations_Execute);
-    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 6, "AvailablePowerSources",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
-    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 7, "PowerSourceVoltage",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
-    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 8, "PowerSourceCurrent",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 6, "AvailablePowerSources",    0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 7, "PowerSourceVoltage",    0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 8, "PowerSourceCurrent",   0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 9, "BatteryLevel",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
     AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 10, "MemoryFree",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
-    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 11, "ErrorCode",     MandatoryEnum_Mandatory, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 11, "ErrorCode",  0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  12, "ResetErrorCode",     MandatoryEnum_Optional, AwaResourceOperations_Execute);
     AwaObjectDefinition_AddResourceDefinitionAsTime(objectDefinition, 13, "CurrentTime",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
     AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 14, "UTCOffset",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
