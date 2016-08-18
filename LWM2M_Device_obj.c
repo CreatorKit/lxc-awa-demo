@@ -373,6 +373,7 @@ static void CreateDeviceInstance(AwaClientSession * session)
 void InitDevice(AwaClientSession * session)
 {
     DefineDeviceObject(session);
+    CreateDeviceInstance(session);
 
     strcpy(DeviceObj.Manufacturer,"Semiotics");
     strcpy(DeviceObj.DeviceType,"Stock");
@@ -400,8 +401,6 @@ void InitDevice(AwaClientSession * session)
     // UTCOffset(session);
     // CurrentTime(session);
     // UpdateErrorCode(session);
-
-    CreateDeviceInstance(session);
 }
 
 void DeviceControl(AwaClientSession * session)
