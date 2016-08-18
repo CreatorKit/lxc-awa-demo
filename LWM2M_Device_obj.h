@@ -1,3 +1,5 @@
+
+#define DEVICE_OBJECT_ID        "3"
 #define MANUFACTURER            "/3/0/0"
 #define DEVICE_TYPE             "/3/0/17"
 #define MODEL_NUMBER            "/3/0/1"

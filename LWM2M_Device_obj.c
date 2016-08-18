@@ -48,6 +48,54 @@ static void changeCallback(const AwaChangeSet * changeSet, void * context)
     }
 }
 
+#define LWM2M_MAX_ID (65535)
+
+typedef enum
+{
+    MandatoryEnum_Optional = 0,
+    MandatoryEnum_Mandatory = 1,
+} MandatoryEnum;
+
+typedef enum
+{
+    MultipleInstancesEnum_Single = 1,
+    MultipleInstancesEnum_Multiple = LWM2M_MAX_ID,
+} MultipleInstancesEnum;
+
+static void DefineDeviceObject(AwaClientSession * session)
+{
+    AwaObjectDefinition * objectDefinition = AwaObjectDefinition_New(atoi(DEVICE_OBJECT_ID), "Device", 1, 1);
+
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition,  0, "Manufacturer",  MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition,  1, "ModelNumber",  MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition,  2, "SerialNumber",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition,  3, "FirmwareVersion",  MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  4, "Reboot",    MandatoryEnum_Mandatory, AwaResourceOperations_Execute);
+    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  5, "FactoryReset",   MandatoryEnum_Optional, AwaResourceOperations_Execute);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 6, "AvailablePowerSources",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 7, "PowerSourceVoltage",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 8, "PowerSourceCurrent",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 9, "BatteryLevel",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 10, "MemoryFree",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 11, "ErrorCode",     MandatoryEnum_Mandatory, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  12, "ResetErrorCode",     MandatoryEnum_Optional, AwaResourceOperations_Execute);
+    AwaObjectDefinition_AddResourceDefinitionAsTime(objectDefinition, 13, "CurrentTime",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 14, "UTCOffset",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 15, "Timezone",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 16, "SupportedBindingandModes",     MandatoryEnum_Mandatory, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 17, "DeviceType",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 18, "HardwareVersion",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 19, "SoftwareVersion",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 20, "BatteryStatus",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 21, "MemoryTotal",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
+
+    AwaClientDefineOperation * operation = AwaClientDefineOperation_New(session);
+    AwaClientDefineOperation_Add(operation, objectDefinition);
+    AwaClientDefineOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
+    AwaClientDefineOperation_Free(&operation);
+}
+
+
 static void UpdateManufacturerName(AwaClientSession * session)
 {
     /* Create SET operation */
@@ -314,6 +362,8 @@ static void UpdateErrorCode(AwaClientSession * session)
 
 void InitDevice(AwaClientSession * session)
 {
+    DefineDeviceObject(session);
+
     strcpy(DeviceObj.Manufacturer,"Semiotics");
     strcpy(DeviceObj.DeviceType,"Stock");
     strcpy(DeviceObj.ModelNumber,"1");
