@@ -9,6 +9,8 @@
 
 #include <lxc/lxccontainer.h>
 
+#include "LWM2M_Device_obj.h"
+
 #define OPERATION_PERFORM_TIMEOUT 1000
 
 #define LXC_AGENT_OBJID     "13375"
@@ -368,10 +370,10 @@ int main(void)
     DefineLxcAgentObject(session);
     CreateAgentInstance(session);
     DefineLxcObject(session);
+    InitDevice(session);
 
     /* Application-specific data */
     struct lxc_agent *agent;
-    // struct lxc_container **c = calloc(LXC_MAX_INSTANCES * sizeof(struct lxc_container *));
     struct container_info **c = calloc(LXC_MAX_INSTANCES, sizeof(struct container_info *));
 
     agent->session = session;
@@ -398,6 +400,7 @@ int main(void)
         AwaClientSession_Process(session, OPERATION_PERFORM_TIMEOUT);
         AwaClientSession_DispatchCallbacks(session);
         updateContainerObjects(agent);
+        DeviceControl(session);
     }
 
     AwaClientSubscribeOperation * cancelSubscribeOperation = AwaClientSubscribeOperation_New(session);

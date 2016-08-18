@@ -2,6 +2,7 @@ LXC_AWA_AGENT=lxc-awa-agent
 LXC_LIB=lxc
 LXC_LDFLAGS=-L/usr/lib/x86_64-linux-gnu -l$(LXC_LIB)
 OBJ = lxc-awa-agent.o
+OBJ += LWM2M_Device_obj.o
 
 AWA_LDFLAGS=-L/lib -lawa
 CC=gcc
