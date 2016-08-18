@@ -17,6 +17,8 @@
 #define TIMEZONE                "/3/0/15"
 #define ERROR_CODE              "/3/0/11"
 
+#define OBJECT_INSTANCE(obj, inst) "/" obj "/" #inst
+
 typedef enum{
   INSTANCE_0 = 0,
   INSTANCE_1,

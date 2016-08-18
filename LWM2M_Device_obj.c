@@ -360,6 +360,16 @@ static void UpdateErrorCode(AwaClientSession * session)
     AwaClientSetOperation_Free(&operation);
 }
 
+static void CreateDeviceInstance(AwaClientSession * session)
+{
+    AwaClientSetOperation * operation = AwaClientSetOperation_New(session);
+
+    AwaClientSetOperation_CreateObjectInstance(operation, OBJECT_INSTANCE(DEVICE_OBJECT_ID, 0));
+
+    AwaClientSetOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
+    AwaClientSetOperation_Free(&operation);
+}
+
 void InitDevice(AwaClientSession * session)
 {
     DefineDeviceObject(session);
@@ -390,6 +400,8 @@ void InitDevice(AwaClientSession * session)
     // UTCOffset(session);
     // CurrentTime(session);
     // UpdateErrorCode(session);
+
+    CreateDeviceInstance(session);
 }
 
 void DeviceControl(AwaClientSession * session)
