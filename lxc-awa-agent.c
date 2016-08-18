@@ -400,7 +400,7 @@ int main(void)
         AwaClientSession_Process(session, OPERATION_PERFORM_TIMEOUT);
         AwaClientSession_DispatchCallbacks(session);
         updateContainerObjects(agent);
-        DeviceControl(session);
+        // DeviceControl(session);
     }
 
     AwaClientSubscribeOperation * cancelSubscribeOperation = AwaClientSubscribeOperation_New(session);

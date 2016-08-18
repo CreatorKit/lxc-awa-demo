@@ -383,9 +383,9 @@ void InitDevice(AwaClientSession * session)
     FactoryReset(session);
     UpdateSoftwareVersion(session);
     UpdateAvailablePowerSources(session);
-    UpdatePowerSourceVoltage(session);
-    UpdatePowerSourceCurrent(session);
-    UpdateBatteryLevel(session);
+    // UpdatePowerSourceVoltage(session);
+    // UpdatePowerSourceCurrent(session);
+    // UpdateBatteryLevel(session);
     Timezone(session);
     UTCOffset(session);
     CurrentTime(session);
