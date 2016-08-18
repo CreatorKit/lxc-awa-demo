@@ -386,10 +386,10 @@ void InitDevice(AwaClientSession * session)
     // UpdatePowerSourceVoltage(session);
     // UpdatePowerSourceCurrent(session);
     // UpdateBatteryLevel(session);
-    Timezone(session);
-    UTCOffset(session);
-    CurrentTime(session);
-    UpdateErrorCode(session);
+    // Timezone(session);
+    // UTCOffset(session);
+    // CurrentTime(session);
+    // UpdateErrorCode(session);
 }
 
 void DeviceControl(AwaClientSession * session)
