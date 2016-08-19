@@ -11,25 +11,7 @@
 
 #include "LWM2M_Device_obj.h"
 
-#define OPERATION_PERFORM_TIMEOUT 1000
-
-#define LXC_AGENT_OBJID     "13375"
-#define LXCA_RESID_NAME     "101"
-#define LXCA_RESID_CREATE   "102"
-
-#define LXC_OBJID           "13376"
-#define LXC_RESID_NAME      "101"
-#define LXC_RESID_START     "102"
-#define LXC_RESID_STOP      "103"
-#define LXC_RESID_DESTROY   "104"
-#define LXC_RESID_STATUS    "105"
-
-#define LXC_DEFAULT_NAME    "Container"
-#define LXC_MAX_INSTANCES   10
-
-#define OBJECT_INSTANCE(obj, inst) "/" obj "/" #inst
-#define RESOURCE_INSTANCE(obj, inst, res) "/" obj "/" #inst "/" res
-
+#include "lxc-obj-defs.h"
 
 struct lxc_agent
 {
@@ -90,32 +72,6 @@ static char *resourceInstance(char *objId, int instance, char* resId)
     return buf;
 }
 
-static void DefineLxcAgentObject(AwaClientSession * session)
-{
-    AwaObjectDefinition * objectDefinition = AwaObjectDefinition_New(atoi(LXC_AGENT_OBJID), "LXCD", 1, 1);
-    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, atoi(LXCA_RESID_NAME),   "Name",   true, AwaResourceOperations_ReadOnly, "LXC Agent");
-    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition, atoi(LXCA_RESID_CREATE), "Create", true, AwaResourceOperations_Execute);
-
-    AwaClientDefineOperation * operation = AwaClientDefineOperation_New(session);
-    AwaClientDefineOperation_Add(operation, objectDefinition);
-    AwaClientDefineOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
-    AwaClientDefineOperation_Free(&operation);
-}
-
-static void DefineLxcObject(AwaClientSession * session)
-{
-    AwaObjectDefinition * objectDefinition = AwaObjectDefinition_New(atoi(LXC_OBJID), "Container", 0, LXC_MAX_INSTANCES);
-    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, atoi(LXC_RESID_NAME),    "Name",   true, AwaResourceOperations_ReadOnly, LXC_DEFAULT_NAME);
-    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition, atoi(LXC_RESID_START),   "Start",  true, AwaResourceOperations_Execute);
-    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition, atoi(LXC_RESID_STOP),    "Stop",   true, AwaResourceOperations_Execute);
-    AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition, atoi(LXC_RESID_DESTROY), "Stop",   true, AwaResourceOperations_Execute);
-    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, atoi(LXC_RESID_STATUS),  "Status", true, AwaResourceOperations_ReadOnly, "UNKNOWN");
-
-    AwaClientDefineOperation * operation = AwaClientDefineOperation_New(session);
-    AwaClientDefineOperation_Add(operation, objectDefinition);
-    AwaClientDefineOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
-    AwaClientDefineOperation_Free(&operation);
-}
 
 static void CreateAgentInstance(AwaClientSession * session)
 {
@@ -159,8 +115,40 @@ static void updateContainerObjects(struct lxc_agent *a)
     AwaClientSetOperation_Free(&operation);
 }
 
+static char* getAppID(AwaClientSession *session)
+{
+    char *str;
+    char *ret = NULL;
+    AwaClientGetOperation * operation = AwaClientGetOperation_New(session);
+
+
+    AwaClientGetOperation_AddPath(operation, str = resourceInstance(LXC_AGENT_OBJID, 0, LXCA_RESID_APPID));
+    AwaClientGetOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
+
+    const AwaClientGetResponse * response = AwaClientGetOperation_GetResponse(operation);
+
+    if (AwaClientGetResponse_ContainsPath(response, str))
+    {
+        /* Test whether the response has a valid value for the specified path */
+        if (AwaClientGetResponse_HasValue(response, str))
+        {
+            /* Retrieve the value, as a C-style string */
+            const char * value;
+            AwaClientGetResponse_GetValueAsCStringPointer(response, str, &value);
+            printf("%s\n", value);
+            ret = strdup(value);
+        }
+    }
+
+    AwaClientGetOperation_Free(&operation);
+    free(str);
+    return ret;
+}
+
 static void createContainerInstance(struct lxc_agent *a, int instance, char *name)
 {
+    char *appId = NULL;
+
     if (instance < LXC_MAX_INSTANCES)
     {
         AwaClientSetOperation * operation = AwaClientSetOperation_New(a->session);
@@ -177,6 +165,11 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
 
         AwaClientSetOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
         AwaClientSetOperation_Free(&operation);
+
+        appId = getAppID(a->session);
+
+        printf("Got AppID: %s\n", appId);
+        free(appId);
 
         ci = calloc(1, sizeof(struct container_info));
         a->ci[instance] = ci;
@@ -367,9 +360,9 @@ int main(void)
 
     AwaClientSession_Connect(session);
 
-    DefineLxcAgentObject(session);
+    DefineLxcAgentClientObject(session);
     CreateAgentInstance(session);
-    DefineLxcObject(session);
+    DefineLxcClientObject(session);
     InitDevice(session);
 
     /* Application-specific data */

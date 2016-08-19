@@ -1,3 +1,5 @@
+#ifndef LWM2M_DEVICE_OBJ_H
+#define LWM2M_DEVICE_OBJ_H
 
 #define DEVICE_OBJECT_ID        "3"
 #define MANUFACTURER            "/3/0/0"
@@ -58,3 +60,5 @@ _Device_obj DeviceObj;
 
 void InitDevice(AwaClientSession * session);
 void DeviceControl(AwaClientSession * session);
+
+#endif

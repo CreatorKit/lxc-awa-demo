@@ -1,8 +1,13 @@
 LXC_AWA_AGENT=lxc-awa-agent
 LXC_LIB=lxc
 LXC_LDFLAGS=-L/usr/lib/x86_64-linux-gnu -l$(LXC_LIB)
+
+DEPS = lxc-obj-defs.h
+DEPS += LWM2M_Device_obj.h
+
 OBJ = lxc-awa-agent.o
 OBJ += LWM2M_Device_obj.o
+OBJ += lxc-obj-defs.o
 
 AWA_LDFLAGS=-L/lib -lawa
 CC=gcc
@@ -11,10 +16,10 @@ CFLAGS=-I/include -I. -g
 LDFLAGS=$(LXC_LDFLAGS) $(AWA_LDFLAGS)
 
 SERVER_DEFS=lxc-server-defs
-OBJ_SD=lxc-server-defs.o
+OBJ_SD = lxc-server-defs.o
+OBJ_SD += lxc-obj-defs.o
 
-
-%.o: %.c
+%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 all: $(LXC_AWA_AGENT) $(SERVER_DEFS)
