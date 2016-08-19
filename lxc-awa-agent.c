@@ -9,18 +9,22 @@
 
 #include <lxc/lxccontainer.h>
 
+#include "queue.h"
 #include "LWM2M_Device_obj.h"
 
 #include "lxc-obj-defs.h"
 
+LIST_HEAD(container_list, container_info) cl_head;
+
 struct lxc_agent
 {
     AwaClientSession *session;
-    struct container_info **ci;
+    struct container_list *cl;
 };
 
 struct container_info
 {
+    LIST_ENTRY(container_info) list;
     struct lxc_container *c;
     int instance;
     char *name;
@@ -33,9 +37,9 @@ static void stopCallback(const AwaExecuteArguments * arguments, void * context);
 static void destroyCallback(const AwaExecuteArguments * arguments, void * context);
 static void createContainerInstance(struct lxc_agent *a, int instance, char *name);
 
-static int createContainer(struct container_info *ci, char * name, int instance);
-static int startContainer(struct lxc_container *c, int instance);
-static int stopContainer(struct lxc_container *c, int instance);
+static int createContainer(struct container_info *ci, char * name);
+static int startContainer(struct lxc_container *c);
+static int stopContainer(struct lxc_container *c);
 static int destroyContainer(struct container_info *ci);
 
 
@@ -72,7 +76,6 @@ static char *resourceInstance(char *objId, int instance, char* resId)
     return buf;
 }
 
-
 static void CreateAgentInstance(AwaClientSession * session)
 {
     AwaClientSetOperation * operation = AwaClientSetOperation_New(session);
@@ -83,28 +86,23 @@ static void CreateAgentInstance(AwaClientSession * session)
     AwaClientSetOperation_Free(&operation);
 }
 
-static void updateContainerObjects(struct lxc_agent *a)
+static void updateContainerObjectsList(struct lxc_agent *a)
 {
     AwaClientSetOperation * operation = AwaClientSetOperation_New(a->session);
     char *str;
-    int count;
     struct container_info *ci;
     struct lxc_container *c;
     bool perform = false;
 
-    for (count = 0; count < LXC_MAX_INSTANCES; count++)
+    for (ci = a->cl->lh_first; ci != NULL; ci = ci->list.le_next)
     {
-        ci = a->ci[count];
-        if (ci)
+        c = ci->c;
+        if (c && c->is_defined(c))
         {
-            c = ci->c;
-            if (c && c->is_defined(c))
-            {
-                ci->status = c->state(c);
-                AwaClientSetOperation_AddValueAsCString(operation, str = resourceInstance(LXC_OBJID, count, LXC_RESID_STATUS), ci->status);
-                free(str);
-                perform = true;
-            }
+            ci->status = c->state(c);
+            AwaClientSetOperation_AddValueAsCString(operation, str = resourceInstance(LXC_OBJID, ci->instance, LXC_RESID_STATUS), ci->status);
+            free(str);
+            perform = true;
         }
     }
 
@@ -114,6 +112,7 @@ static void updateContainerObjects(struct lxc_agent *a)
     }
     AwaClientSetOperation_Free(&operation);
 }
+
 
 static char* getAppID(AwaClientSession *session)
 {
@@ -135,7 +134,6 @@ static char* getAppID(AwaClientSession *session)
             /* Retrieve the value, as a C-style string */
             const char * value;
             AwaClientGetResponse_GetValueAsCStringPointer(response, str, &value);
-            printf("%s\n", value);
             ret = strdup(value);
         }
     }
@@ -172,13 +170,12 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
         free(appId);
 
         ci = calloc(1, sizeof(struct container_info));
-        a->ci[instance] = ci;
-        createContainer(ci, name, instance);
-        startContainer(ci->c, instance);
+        LIST_INSERT_HEAD(a->cl, ci, list);
+        createContainer(ci, name);
+        startContainer(ci->c);
 
         ci->name = name;
         ci->instance = instance;
-        ci->c = a->ci[instance]->c;
 
         AwaClientExecuteSubscription * startSub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_START), startCallback, (void*)ci);
         free(str);
@@ -201,7 +198,7 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
     }
 }
 
-static int createContainer(struct container_info *ci, char *name, int instance)
+static int createContainer(struct container_info *ci, char *name)
 {
     struct lxc_container *c;
     int ret = 0;
@@ -211,7 +208,6 @@ static int createContainer(struct container_info *ci, char *name, int instance)
         fprintf(stderr, "Failed to setup lxc_container struct\n");
         ret = 1;
     }
-    // ci = a->ci[instance];
     ci->c = c;
 
     if (c->is_defined(c)) {
@@ -237,7 +233,7 @@ static int createContainer(struct container_info *ci, char *name, int instance)
 }
 
 
-static int startContainer(struct lxc_container *c, int instance)
+static int startContainer(struct lxc_container *c)
 {
     int ret = 0;
 
@@ -256,7 +252,7 @@ static int startContainer(struct lxc_container *c, int instance)
     return ret;
 }
 
-static int stopContainer(struct lxc_container *c, int instance)
+static int stopContainer(struct lxc_container *c)
 {
     int ret = 0;
 
@@ -315,7 +311,7 @@ static void startCallback(const AwaExecuteArguments * arguments, void * context)
     struct container_info *ci = (struct container_info*) context;
 
     printf("Start Callback received. Context = %p\n", ci);
-    startContainer(ci->c , ci->instance);
+    startContainer(ci->c);
 
     printf("Resource executed [%zu bytes payload]\n", arguments->Size);
 }
@@ -325,7 +321,7 @@ static void stopCallback(const AwaExecuteArguments * arguments, void * context)
     struct container_info *ci = (struct container_info*) context;
 
     printf("Stop Callback received. Context = %p\n", ci);
-    stopContainer(ci->c , ci->instance);
+    stopContainer(ci->c);
 
     printf("Resource executed [%zu bytes payload]\n", arguments->Size);
 }
@@ -367,10 +363,9 @@ int main(void)
 
     /* Application-specific data */
     struct lxc_agent *agent;
-    struct container_info **c = calloc(LXC_MAX_INSTANCES, sizeof(struct container_info *));
-
+    LIST_INIT(&cl_head);
+    agent->cl = &cl_head;
     agent->session = session;
-    agent->ci = c;
 
     AwaClientExecuteSubscription * createSub = AwaClientExecuteSubscription_New(RESOURCE_INSTANCE(LXC_AGENT_OBJID, 0, LXCA_RESID_CREATE), createCallback, (void*)agent);
 
@@ -392,7 +387,7 @@ int main(void)
         /* Receive notifications */
         AwaClientSession_Process(session, OPERATION_PERFORM_TIMEOUT);
         AwaClientSession_DispatchCallbacks(session);
-        updateContainerObjects(agent);
+        updateContainerObjectsList(agent);
         // DeviceControl(session);
     }
 
@@ -405,7 +400,6 @@ int main(void)
 
     /* Free the execute subscription */
     AwaClientExecuteSubscription_Free(&createSub);
-    // AwaClientExecuteSubscription_Free(&stopSub);
 
     AwaClientSession_Disconnect(session);
     AwaClientSession_Free(&session);
