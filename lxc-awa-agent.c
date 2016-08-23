@@ -29,6 +29,10 @@ struct container_info
     int instance;
     char *name;
     const char *status;
+    AwaClientExecuteSubscription *startSub;
+    AwaClientExecuteSubscription *stopSub;
+    AwaClientExecuteSubscription *destroySub;
+    struct lxc_agent *agent;
 };
 
 static void createCallback(const AwaExecuteArguments * arguments, void * context);
@@ -36,6 +40,7 @@ static void startCallback(const AwaExecuteArguments * arguments, void * context)
 static void stopCallback(const AwaExecuteArguments * arguments, void * context);
 static void destroyCallback(const AwaExecuteArguments * arguments, void * context);
 static void createContainerInstance(struct lxc_agent *a, int instance, char *name);
+static void destroyContainerInstance(struct container_info *ci);
 
 static int createContainer(struct container_info *ci, char * name);
 static int startContainer(struct lxc_container *c);
@@ -120,7 +125,6 @@ static char* getAppID(AwaClientSession *session)
     char *ret = NULL;
     AwaClientGetOperation * operation = AwaClientGetOperation_New(session);
 
-
     AwaClientGetOperation_AddPath(operation, str = resourceInstance(LXC_AGENT_OBJID, 0, LXCA_RESID_APPID));
     AwaClientGetOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
 
@@ -176,13 +180,18 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
 
         ci->name = name;
         ci->instance = instance;
+        ci->agent = a;
 
-        AwaClientExecuteSubscription * startSub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_START), startCallback, (void*)ci);
+        AwaClientExecuteSubscription *startSub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_START), startCallback, (void*)ci);
         free(str);
-        AwaClientExecuteSubscription * stopSub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_STOP), stopCallback, (void*)ci);
+        AwaClientExecuteSubscription *stopSub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_STOP), stopCallback, (void*)ci);
         free(str);
-        AwaClientExecuteSubscription * destroySub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_DESTROY), destroyCallback, (void*)ci);
+        AwaClientExecuteSubscription *destroySub = AwaClientExecuteSubscription_New(str = resourceInstance(LXC_OBJID, instance, LXC_RESID_DESTROY), destroyCallback, (void*)ci);
         free(str);
+
+        ci->startSub = startSub;
+        ci->stopSub = startSub;
+        ci->destroySub = destroySub;
 
         /* Start listening to notifications */
         AwaClientSubscribeOperation * subscribeOperation = AwaClientSubscribeOperation_New(a->session);
@@ -191,11 +200,45 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
         AwaClientSubscribeOperation_AddExecuteSubscription(subscribeOperation, stopSub);
         AwaClientSubscribeOperation_AddExecuteSubscription(subscribeOperation, destroySub);
 
-        //TODO implemement subscription cancel and freeing
-
         AwaClientSubscribeOperation_Perform(subscribeOperation, OPERATION_PERFORM_TIMEOUT);
         AwaClientSubscribeOperation_Free(&subscribeOperation);
     }
+}
+
+static void destroyContainerInstance(struct container_info *ci)
+{
+    struct lxc_container *c = ci->c;
+
+    if (c && !strncmp(c->state(c), "STOPPED", strlen(c->state(c))))
+    {
+        AwaClientSubscribeOperation *cancelSubscribeOperation = AwaClientSubscribeOperation_New(ci->agent->session);
+
+        AwaClientSubscribeOperation_AddCancelExecuteSubscription(cancelSubscribeOperation, ci->startSub);
+        AwaClientSubscribeOperation_AddCancelExecuteSubscription(cancelSubscribeOperation, ci->stopSub);
+        AwaClientSubscribeOperation_AddCancelExecuteSubscription(cancelSubscribeOperation, ci->destroySub);
+
+        AwaClientSubscribeOperation_Perform(cancelSubscribeOperation, OPERATION_PERFORM_TIMEOUT);
+        AwaClientSubscribeOperation_Free(&cancelSubscribeOperation);
+
+        // AwaClientExecuteSubscription_Free(&(ci->startSub));
+        // AwaClientExecuteSubscription_Free(&(ci->stopSub));
+        // AwaClientExecuteSubscription_Free(&(ci->destroySub));
+
+        AwaClientDeleteOperation *operation = AwaClientDeleteOperation_New(ci->agent->session);
+        AwaClientDeleteOperation_AddPath(operation, objectInstance(LXC_OBJID, ci->instance));
+
+        AwaClientDeleteOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
+        AwaClientDeleteOperation_Free(&operation);
+
+        destroyContainer(ci);
+        LIST_REMOVE(ci, list);
+        printf("Container destroyed\n");
+    }
+    else
+    {
+        printf("Container not stopped: %s\n", c->state(c));
+    }
+
 }
 
 static int createContainer(struct container_info *ci, char *name)
@@ -226,8 +269,6 @@ static int createContainer(struct container_info *ci, char *name)
     {
         /* Query some information */
         printf("Container state: %s\n", c->state(c));
-
-        // a->state = CREATED;
     }
     return ret;
 }
@@ -296,11 +337,11 @@ static int destroyContainer(struct container_info *ci)
 
 static void createCallback(const AwaExecuteArguments * arguments, void * context)
 {
-    struct lxc_agent *c = (struct lxc_agent*)context;
+    struct lxc_agent *a = (struct lxc_agent*)context;
 
     static int instance = 0;
-    printf("Create Callback received. Context = %p\n", c);
-    createContainerInstance(c, instance, NULL);
+    printf("Create Callback received. Context = %p\n", a);
+    createContainerInstance(a, instance, NULL);
     instance++;
 
     printf("Resource executed [%zu bytes payload]\n", arguments->Size);
@@ -331,7 +372,7 @@ static void destroyCallback(const AwaExecuteArguments * arguments, void * contex
     struct container_info *ci = (struct container_info*) context;
 
     printf("Destroy Callback received. Context = %p\n", ci);
-    destroyContainer(ci);
+    destroyContainerInstance(ci);
 
     printf("Resource executed [%zu bytes payload]\n", arguments->Size);
 }
