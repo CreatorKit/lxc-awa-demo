@@ -202,6 +202,7 @@ static void createContainerInstance(struct lxc_agent *a, int instance, char *nam
 
         AwaClientSubscribeOperation_Perform(subscribeOperation, OPERATION_PERFORM_TIMEOUT);
         AwaClientSubscribeOperation_Free(&subscribeOperation);
+        printf("Container instance: %d created\n", ci->instance);
     }
 }
 
@@ -232,7 +233,7 @@ static void destroyContainerInstance(struct container_info *ci)
 
         destroyContainer(ci);
         LIST_REMOVE(ci, list);
-        printf("Container destroyed\n");
+        printf("Container instance: %d destroyed\n", ci->instance);
     }
     else
     {
