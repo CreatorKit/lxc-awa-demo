@@ -14,7 +14,7 @@
 
 #include "lxc-obj-defs.h"
 
-LIST_HEAD(container_list, container_info) cl_head;
+LIST_HEAD(container_list, container_info);
 
 struct lxc_agent
 {
@@ -403,12 +403,13 @@ int main(void)
     InitDevice(session);
 
     /* Application-specific data */
-    struct lxc_agent *agent;
+    struct lxc_agent agent;
+    struct container_list cl_head;
     LIST_INIT(&cl_head);
-    agent->cl = &cl_head;
-    agent->session = session;
+    agent.cl = &cl_head;
+    agent.session = session;
 
-    AwaClientExecuteSubscription * createSub = AwaClientExecuteSubscription_New(RESOURCE_INSTANCE(LXC_AGENT_OBJID, 0, LXCA_RESID_CREATE), createCallback, (void*)agent);
+    AwaClientExecuteSubscription * createSub = AwaClientExecuteSubscription_New(RESOURCE_INSTANCE(LXC_AGENT_OBJID, 0, LXCA_RESID_CREATE), createCallback, (void*)&agent);
 
     /* Start listening to notifications */
     AwaClientSubscribeOperation * subscribeOperation = AwaClientSubscribeOperation_New(session);
@@ -417,7 +418,6 @@ int main(void)
 
     AwaClientSubscribeOperation_Perform(subscribeOperation, OPERATION_PERFORM_TIMEOUT);
     AwaClientSubscribeOperation_Free(&subscribeOperation);
-
 
     printf("Waiting for events...\n");
 
@@ -428,7 +428,7 @@ int main(void)
         /* Receive notifications */
         AwaClientSession_Process(session, OPERATION_PERFORM_TIMEOUT);
         AwaClientSession_DispatchCallbacks(session);
-        updateContainerObjectsList(agent);
+        updateContainerObjectsList(&agent);
         // DeviceControl(session);
     }
 
