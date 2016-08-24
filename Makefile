@@ -9,10 +9,12 @@ OBJ = lxc-awa-agent.o
 OBJ += LWM2M_Device_obj.o
 OBJ += lxc-obj-defs.o
 
+AWA_INCLUDE=-I/include
 AWA_LDFLAGS=-L/lib -lawa
 CC=gcc
+LD=gcc
 
-CFLAGS=-I/include -I. -g
+CFLAGS=$(AWA_INCLUDE)
 LDFLAGS=$(LXC_LDFLAGS) $(AWA_LDFLAGS)
 
 SERVER_DEFS=lxc-server-defs
@@ -20,15 +22,15 @@ OBJ_SD = lxc-server-defs.o
 OBJ_SD += lxc-obj-defs.o
 
 %.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(CFLAGS) -I. -g
 
 all: $(LXC_AWA_AGENT) $(SERVER_DEFS)
 
 $(LXC_AWA_AGENT): $(OBJ)
-	gcc -o $@ $^ $(LDFLAGS) $(CFLAGS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
 $(SERVER_DEFS): $(OBJ_SD)
-	gcc -o $@ $^ $(LDFLAGS) $(CFLAGS)
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -rf *.o
