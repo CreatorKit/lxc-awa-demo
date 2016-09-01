@@ -1,0 +1,39 @@
+#!/bin/sh
+
+echo $@
+
+LXC_MAPPED_GID=
+LXC_MAPPED_UID=
+LXC_NAME=
+LXC_PATH=
+LXC_ROOTFS=
+
+options=$(getopt -o d:r:a:hl -l dist:,release:,arch:,help,list,variant:,\
+server:,keyid:,keyserver:,no-validate,flush-cache,force-cache,name:,path:,\
+rootfs:,mapped-uid:,mapped-gid: -- "$@")
+
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+eval set -- "$options"
+
+while :; do
+    case "$1" in
+        --name)             LXC_NAME=$2; shift 2;;
+        --path)             LXC_PATH=$2; shift 2;;
+        --rootfs)           LXC_ROOTFS=$2; shift 2;;
+        --mapped-uid)       LXC_MAPPED_UID=$2; shift 2;;
+        --mapped-gid)       LXC_MAPPED_GID=$2; shift 2;;
+        *)                  break;;
+    esac
+done
+
+tar  --numeric-owner -xpf /root/openwrt-pistachio-lxc-rootfs.tar -C ${LXC_PATH}
+
+mkdir -p ${LXC_ROOTFS}/dev/pts/
+
+echo >> ${LXC_PATH}/config
+echo lxc.rootfs = ${LXC_ROOTFS} >> ${LXC_PATH}/config
+echo lxc.utsname = $LXC_NAME >> ${LXC_PATH}/config
+echo config system \
+        option hostname $LXC_NAME >> ${LXC_ROOTFS}/etc/config/system
