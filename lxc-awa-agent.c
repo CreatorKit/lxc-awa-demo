@@ -259,12 +259,21 @@ static int createContainer(struct container_info *ci, char *name)
         ret = 1;
     }
 
+#ifdef CI40_TEMPLATE
+    /* Create the container */
+    if (!c->createl(c, "template", NULL, NULL, LXC_CREATE_QUIET,
+                    name, NULL)) {
+        fprintf(stderr, "Failed to create container rootfs\n");
+        ret = 1;
+    }
+#else
     /* Create the container */
     if (!c->createl(c, "download", NULL, NULL, LXC_CREATE_QUIET,
                     "-d", "ubuntu", "-r", "trusty", "-a", "i386", NULL)) {
         fprintf(stderr, "Failed to create container rootfs\n");
         ret = 1;
     }
+#endif
 
     if (!ret)
     {
@@ -273,7 +282,6 @@ static int createContainer(struct container_info *ci, char *name)
     }
     return ret;
 }
-
 
 static int startContainer(struct lxc_container *c)
 {

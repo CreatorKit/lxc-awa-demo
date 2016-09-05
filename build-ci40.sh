@@ -4,6 +4,6 @@ export MIPS_SDK="/work/openwrt/OpenWrt-SDK-0.9.4/staging_dir/target-mipsel_mips3
 make \
 CC=mipsel-openwrt-linux-musl-gcc \
 LD=mipsel-openwrt-linux-musl-gcc \
-CFLAGS=-I$MIPS_SDK/usr/include \
+CFLAGS="-I$MIPS_SDK/usr/include -DCI40_TEMPLATE" \
 LDFLAGS="-L$MIPS_SDK/usr/lib -lawa -llxc -lcap"
 
