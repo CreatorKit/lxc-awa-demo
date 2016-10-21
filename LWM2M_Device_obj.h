@@ -18,6 +18,8 @@
 #define UTCOFFSET               "/3/0/14"
 #define TIMEZONE                "/3/0/15"
 #define ERROR_CODE              "/3/0/11"
+#define RESET_ERROR_CODE        "/3/0/12"
+#define SUPPORTED_BINGING_AND_MODES "/3/0/16"
 
 #define OBJECT_INSTANCE(obj, inst) "/" obj "/" #inst
 

@@ -77,11 +77,11 @@ static void DefineDeviceObject(AwaClientSession * session)
     AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 8, "PowerSourceCurrent",   0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 9, "BatteryLevel",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
     AwaObjectDefinition_AddResourceDefinitionAsInteger(objectDefinition, 10, "MemoryFree",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
-    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 11, "ErrorCode",  0, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsIntegerArray(objectDefinition, 11, "ErrorCode",  MandatoryEnum_Mandatory, LWM2M_MAX_ID, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsNoType(objectDefinition,  12, "ResetErrorCode",     MandatoryEnum_Optional, AwaResourceOperations_Execute);
-    AwaObjectDefinition_AddResourceDefinitionAsTime(objectDefinition, 13, "CurrentTime",   MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, 0);
-    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 14, "UTCOffset",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
-    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 15, "Timezone",    MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsTime(objectDefinition, 13, "CurrentTime",   MandatoryEnum_Optional, AwaResourceOperations_ReadWrite, 0);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 14, "UTCOffset",    MandatoryEnum_Optional, AwaResourceOperations_ReadWrite, NULL);
+    AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 15, "Timezone",    MandatoryEnum_Optional, AwaResourceOperations_ReadWrite, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 16, "SupportedBindingandModes",     MandatoryEnum_Mandatory, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 17, "DeviceType",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
     AwaObjectDefinition_AddResourceDefinitionAsString(objectDefinition, 18, "HardwareVersion",     MandatoryEnum_Optional, AwaResourceOperations_ReadOnly, NULL);
@@ -365,6 +365,25 @@ static void CreateDeviceInstance(AwaClientSession * session)
     AwaClientSetOperation * operation = AwaClientSetOperation_New(session);
 
     AwaClientSetOperation_CreateObjectInstance(operation, OBJECT_INSTANCE(DEVICE_OBJECT_ID, 0));
+    AwaClientSetOperation_CreateOptionalResource(operation, MANUFACTURER);
+    AwaClientSetOperation_CreateOptionalResource(operation, DEVICE_TYPE);
+    AwaClientSetOperation_CreateOptionalResource(operation, MODEL_NUMBER);
+    AwaClientSetOperation_CreateOptionalResource(operation, SERIAL_NUMBER);
+    AwaClientSetOperation_CreateOptionalResource(operation, HARDWARE_VERSION);
+    AwaClientSetOperation_CreateOptionalResource(operation, FIRMWARE_VERSION);
+    AwaClientSetOperation_CreateOptionalResource(operation, SOFTWARE_VERSION);
+    AwaClientSetOperation_CreateOptionalResource(operation, CURRENT_TIME);
+    AwaClientSetOperation_CreateOptionalResource(operation, REBOOT);
+    AwaClientSetOperation_CreateOptionalResource(operation, UTCOFFSET);
+    AwaClientSetOperation_CreateOptionalResource(operation, TIMEZONE);
+    AwaClientSetOperation_CreateOptionalResource(operation, ERROR_CODE);
+    AwaClientSetOperation_CreateOptionalResource(operation, AVAILABLE_POWER_SOURCES);
+    AwaClientSetOperation_CreateOptionalResource(operation, POWER_SOURCE_VOLTAGE);
+    AwaClientSetOperation_CreateOptionalResource(operation, POWER_SOURCE_CURRENT);
+    AwaClientSetOperation_CreateOptionalResource(operation, BATTERY_LEVEL);
+    AwaClientSetOperation_CreateOptionalResource(operation, SUPPORTED_BINGING_AND_MODES);
+    AwaClientSetOperation_CreateOptionalResource(operation, RESET_ERROR_CODE);
+
 
     AwaClientSetOperation_Perform(operation, OPERATION_PERFORM_TIMEOUT);
     AwaClientSetOperation_Free(&operation);
@@ -376,7 +395,7 @@ void InitDevice(AwaClientSession * session)
     CreateDeviceInstance(session);
 
     strcpy(DeviceObj.Manufacturer,"Semiotics");
-    strcpy(DeviceObj.DeviceType,"Stock");
+    strcpy(DeviceObj.DeviceType,"Creator Ci40");
     strcpy(DeviceObj.ModelNumber,"1");
     strcpy(DeviceObj.SerialNumber,"12345");
     strcpy(DeviceObj.HardwareVersion,"V0.1");
@@ -394,13 +413,13 @@ void InitDevice(AwaClientSession * session)
     FactoryReset(session);
     UpdateSoftwareVersion(session);
     UpdateAvailablePowerSources(session);
-    // UpdatePowerSourceVoltage(session);
-    // UpdatePowerSourceCurrent(session);
-    // UpdateBatteryLevel(session);
-    // Timezone(session);
-    // UTCOffset(session);
-    // CurrentTime(session);
-    // UpdateErrorCode(session);
+    UpdatePowerSourceVoltage(session);
+    UpdatePowerSourceCurrent(session);
+    UpdateBatteryLevel(session);
+    Timezone(session);
+    UTCOffset(session);
+    CurrentTime(session);
+    UpdateErrorCode(session);
 }
 
 void DeviceControl(AwaClientSession * session)
